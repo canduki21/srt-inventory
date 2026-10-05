@@ -8,24 +8,23 @@ const SKUS = [
 
 const SIZE_LABELS = { '1kg': '1 kg bags', '5kg': '5 kg bags', '20kg': '20 kg buckets' };
 
-let inventory  = {};   // { SKU: { id, stock_1kg, stock_5kg, stock_20kg } }
+let inventory  = {};
 let selectedSKU  = null;
 let selectedSize = '1kg';
 let deductQty    = 1;
 
-const skuSelect   = document.getElementById('sku-select');
-const sizeCard    = document.getElementById('size-card');
-const stockCard   = document.getElementById('stock-card');
-const deductCard  = document.getElementById('deduct-card');
-const confirmBtn  = document.getElementById('confirm-btn');
+const skuSelect    = document.getElementById('sku-select');
+const sizeCard     = document.getElementById('size-card');
+const stockCard    = document.getElementById('stock-card');
+const deductCard   = document.getElementById('deduct-card');
+const confirmBtn   = document.getElementById('confirm-btn');
 const stockDisplay = document.getElementById('stock-display');
-const stockUnit   = document.getElementById('stock-unit');
-const qtyValue    = document.getElementById('qty-value');
-const qtyMinus    = document.getElementById('qty-minus');
-const qtyPlus     = document.getElementById('qty-plus');
-const toast       = document.getElementById('toast');
+const stockUnit    = document.getElementById('stock-unit');
+const qtyValue     = document.getElementById('qty-value');
+const qtyMinus     = document.getElementById('qty-minus');
+const qtyPlus      = document.getElementById('qty-plus');
+const toast        = document.getElementById('toast');
 
-// Populate SKU dropdown
 SKUS.forEach(sku => {
   const opt = document.createElement('option');
   opt.value = sku;
@@ -33,31 +32,17 @@ SKUS.forEach(sku => {
   skuSelect.appendChild(opt);
 });
 
-// ── Airtable helpers ────────────────────────────────────────────────────────
-
-function airtableURL(recordId = '') {
-  const base = `https://api.airtable.com/v0/${CONFIG.BASE_ID}/${encodeURIComponent(CONFIG.TABLE_NAME)}`;
-  return recordId ? `${base}/${recordId}` : base;
-}
-
-function airtableHeaders() {
-  return {
-    Authorization: `Bearer ${CONFIG.API_KEY}`,
-    'Content-Type': 'application/json'
-  };
-}
+// ── Google Sheets via Apps Script ────────────────────────────────────────────
 
 async function loadInventory() {
   try {
-    const res  = await fetch(airtableURL() + '?pageSize=100', { headers: airtableHeaders() });
+    const res  = await fetch(`${CONFIG.SCRIPT_URL}?action=get`);
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
     data.records.forEach(r => {
-      inventory[r.fields.SKU] = {
-        id:         r.id,
-        stock_1kg:  r.fields.Stock_1kg  ?? 0,
-        stock_5kg:  r.fields.Stock_5kg  ?? 0,
-        stock_20kg: r.fields.Stock_20kg ?? 0
+      inventory[r.SKU] = {
+        stock_1kg:  r.Stock_1kg  || 0,
+        stock_5kg:  r.Stock_5kg  || 0,
+        stock_20kg: r.Stock_20kg || 0
       };
     });
   } catch (err) {
@@ -66,18 +51,17 @@ async function loadInventory() {
   }
 }
 
-async function patchStock(recordId, fieldName, newValue) {
-  const res = await fetch(airtableURL(recordId), {
-    method:  'PATCH',
-    headers: airtableHeaders(),
-    body: JSON.stringify({ fields: { [fieldName]: newValue } })
-  });
+async function saveStock(sku, fieldName, newValue) {
+  const url = `${CONFIG.SCRIPT_URL}?action=update`
+            + `&sku=${encodeURIComponent(sku)}`
+            + `&field=${encodeURIComponent(fieldName)}`
+            + `&value=${newValue}`;
+  const res  = await fetch(url);
   const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  return data;
+  if (!data.success) throw new Error('Update failed');
 }
 
-// ── UI helpers ──────────────────────────────────────────────────────────────
+// ── UI helpers ───────────────────────────────────────────────────────────────
 
 function getStock() {
   if (!selectedSKU || !inventory[selectedSKU]) return null;
@@ -90,7 +74,7 @@ function updateStockDisplay() {
 
   stockDisplay.textContent = stock;
   stockDisplay.className   = 'stock-display';
-  if (stock === 0)    stockDisplay.classList.add('empty');
+  if (stock === 0)     stockDisplay.classList.add('empty');
   else if (stock <= 5) stockDisplay.classList.add('low');
 
   stockUnit.textContent = SIZE_LABELS[selectedSize];
@@ -113,7 +97,7 @@ function showToast(msg) {
   showToast._t = setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-// ── Event listeners ─────────────────────────────────────────────────────────
+// ── Event listeners ──────────────────────────────────────────────────────────
 
 skuSelect.addEventListener('change', () => {
   selectedSKU = skuSelect.value || null;
@@ -154,14 +138,13 @@ qtyPlus.addEventListener('click', () => {
 confirmBtn.addEventListener('click', async () => {
   const stock     = getStock();
   const newStock  = Math.max(0, stock - deductQty);
-  const record    = inventory[selectedSKU];
   const fieldName = `Stock_${selectedSize}`;
 
   confirmBtn.disabled    = true;
   confirmBtn.textContent = 'SAVING...';
 
   try {
-    await patchStock(record.id, fieldName, newStock);
+    await saveStock(selectedSKU, fieldName, newStock);
     inventory[selectedSKU][`stock_${selectedSize}`] = newStock;
     updateStockDisplay();
     showToast(`✓ ${deductQty} × ${selectedSKU} ${selectedSize} deducted`);

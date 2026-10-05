@@ -1,22 +1,16 @@
 function stockClass(n, lowAt) {
-  if (n === 0)      return 'n-zero';
-  if (n <= lowAt)   return 'n-low';
+  if (n === 0)     return 'n-zero';
+  if (n <= lowAt)  return 'n-low';
   return 'n-ok';
 }
 
 async function loadAdminInventory() {
-  const container = document.getElementById('table-container');
+  const container   = document.getElementById('table-container');
   const lastUpdated = document.getElementById('last-updated');
 
   try {
-    const url = `https://api.airtable.com/v0/${CONFIG.BASE_ID}/${encodeURIComponent(CONFIG.TABLE_NAME)}`
-              + `?sort[0][field]=SKU&sort[0][direction]=asc&pageSize=100`;
-
-    const res  = await fetch(url, {
-      headers: { Authorization: `Bearer ${CONFIG.API_KEY}` }
-    });
+    const res  = await fetch(`${CONFIG.SCRIPT_URL}?action=get`);
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
 
     lastUpdated.textContent = 'Updated ' + new Date().toLocaleTimeString();
 
@@ -37,16 +31,13 @@ async function loadAdminInventory() {
     `;
 
     const tbody = document.createElement('tbody');
-
     data.records.forEach(r => {
-      const f   = r.fields;
-      const s1  = f.Stock_1kg  ?? 0;
-      const s5  = f.Stock_5kg  ?? 0;
-      const s20 = f.Stock_20kg ?? 0;
-
-      const tr = document.createElement('tr');
+      const s1  = r.Stock_1kg  || 0;
+      const s5  = r.Stock_5kg  || 0;
+      const s20 = r.Stock_20kg || 0;
+      const tr  = document.createElement('tr');
       tr.innerHTML = `
-        <td>${f.SKU}</td>
+        <td>${r.SKU}</td>
         <td class="${stockClass(s1,  5)}">${s1}</td>
         <td class="${stockClass(s5,  3)}">${s5}</td>
         <td class="${stockClass(s20, 2)}">${s20}</td>
