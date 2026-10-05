@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>SRT Inventory</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>SRT Inventory</h1>
+  <a href="admin.html" class="header-link">View All Stock →</a>
+</header>
+
+<main>
+  <div class="card">
+    <label class="field-label" for="sku-select">SIMULANT</label>
+    <select id="sku-select">
+      <option value="">Select a simulant...</option>
+    </select>
+  </div>
+
+  <div class="card" id="size-card" hidden>
+    <label class="field-label">SIZE</label>
+    <div class="toggle-group">
+      <button class="toggle-btn active" data-size="1kg">1 kg</button>
+      <button class="toggle-btn"        data-size="5kg">5 kg</button>
+      <button class="toggle-btn"        data-size="20kg">20 kg</button>
+    </div>
+  </div>
+
+  <div class="card" id="stock-card" hidden>
+    <label class="field-label">IN STOCK</label>
+    <div class="stock-display" id="stock-display">—</div>
+    <div class="stock-unit" id="stock-unit"></div>
+  </div>
+
+  <div class="card" id="deduct-card" hidden>
+    <label class="field-label">DEDUCT</label>
+    <div class="qty-control">
+      <button class="qty-btn" id="qty-minus" aria-label="Decrease">−</button>
+      <span   class="qty-value" id="qty-value">1</span>
+      <button class="qty-btn" id="qty-plus"  aria-label="Increase">+</button>
+    </div>
+  </div>
+
+  <button class="confirm-btn" id="confirm-btn" hidden>CONFIRM</button>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

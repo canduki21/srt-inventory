@@ -1,0 +1,5 @@
+const CONFIG = {
+  API_KEY: 'YOUR_AIRTABLE_API_KEY',
+  BASE_ID: 'YOUR_AIRTABLE_BASE_ID',
+  TABLE_NAME: 'Inventory'
+};
